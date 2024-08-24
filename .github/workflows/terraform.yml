@@ -1,0 +1,52 @@
+name: Terraform Workflow
+
+on:
+  push:
+    branches:
+      - feature/*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.1
+
+      - name: Terraform Init
+        run: terraform init -reconfigure -backend-config=tfbackend
+        working-directory: ./dev
+
+      - name: Terraform Plan
+        run: terraform plan -var-file=dev.tfvars
+        working-directory: ./dev
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.1
+
+      - name: Terraform Init
+        run: terraform init -reconfigure -backend-config=tfbackend
+        working-directory: ./dev
+
+      - name: Terraform Apply
+        run: terraform apply -var-file=dev.tfvars
+        working-directory: ./dev
